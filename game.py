@@ -175,7 +175,7 @@ def update(board, screen, font):
                 board.restart()
 
             elif 420 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
-                open_highscores()
+                open_highscores(screen)
 
             elif mouse_pos[1] < 540:
                 # Brädet använder omvänt än mouse_pos
@@ -185,7 +185,7 @@ def update(board, screen, font):
 
 
 # hs = highscore
-def open_highscores():
+def open_highscores(screen):
     board_list = load_board()
     board_list = sorted(board_list, key=lambda x: x.turn, reverse=True)
     count = min(5, len(board_list))
@@ -197,6 +197,15 @@ def open_highscores():
     for i in range(count):
         turns += board_list[i].turn
     print('Average', round(turns / count, 1), 'turns per game over', count, 'games.')
+
+    showing_hs = True
+    while showing_hs:
+        screen.fill((0, 0, 0))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                showing_hs = False
 
 
 def save_board(board):
