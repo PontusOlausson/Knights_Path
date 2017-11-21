@@ -11,12 +11,17 @@ class Board:
     height = 600
     INC = width / 8
 
-    def __init__(self, id):
+    def __init__(self, _id):
         pygame.init()
         self.squares = []
         self.turn = 1
-        self.restart()
-        self.id = id
+        self.id = _id
+
+        self.squares = self.create_board()
+        i = random.randint(2, 9)
+        j = random.randint(2, 9)
+        self.squares[i][j] = 'k'  # placerar ut springaren på en godtycklig ruta
+        self.turn = 1
 
     @staticmethod
     def create_board():
@@ -64,22 +69,17 @@ class Board:
                 if self.squares[row][column] is 'k':
                     return row, column
 
-    # Används även för den första starten av spelet
-    def restart(self):
-        self.squares = self.create_board()
-        i = random.randint(2, 9)
-        j = random.randint(2, 9)
-        self.squares[i][j] = 'k'  # placerar ut springaren på en godtycklig ruta
-        self.turn = 1
-
 
 class Game:
     def __init__(self):
-        self.board = Board(1)
+        self.board = Board(get_next_id())
         self.screen_width = 540
         self.screen_height = 660
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.font = pygame.font.SysFont('Arial', 48)
+
+    def restart(self):
+        self.board = Board(get_next_id())
 
     def draw_board(self):
         inc = self.board.INC
@@ -163,7 +163,7 @@ class Game:
                 # blå knapp
                 elif 360 < mouse_pos[0] < 420 and 570 < mouse_pos[1] < 630:
                     save_board(self.board)
-                    self.board.restart()
+                    self.restart()
 
                 elif 420 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
                     self.draw_highscores()
@@ -184,7 +184,7 @@ class Game:
             top_five.append(board_list[i])
 
         total_turns = sum(map(lambda x: x.turn, board_list))
-        count = len(board_list)
+        count = max(len(board_list), 1)  # kan inte vara 0
         print('Average', round(total_turns / count, 1), 'turns per game over', count, 'games.')
 
         showing_hs = True
@@ -224,9 +224,12 @@ def main():
 
 def save_board(board):
     board_list = load_boards()
-    with open('highscores.dat', 'wb') as f:
-        board_list.append(board)
-        pickle.dump(board_list, f)
+    if any(b.id == board.id for b in board_list):
+        print('fanns redan ett bräde med id', board.id)
+    else:
+        with open('highscores.dat', 'wb') as f:
+            board_list.append(board)
+            pickle.dump(board_list, f)
 
 
 def load_boards():
@@ -234,9 +237,19 @@ def load_boards():
         with open('highscores.dat', 'rb') as f:
             board_list = pickle.load(f)
     except EOFError as e:
-        board_list = []
         print(e)
+        board_list = []
     return board_list
+
+
+def get_next_id():
+    board_list = load_boards()
+    try:
+        next_id = max(board.id for board in board_list) + 1
+    except ValueError as e:
+        print(e)
+        next_id = 0
+    return next_id
 
 
 if __name__ == '__main__':
