@@ -39,10 +39,7 @@ class Board:
     def random_move(self):
         moves = self.get_legit_moves()
         i = random.randint(0, len(moves) - 1)
-        knight_pos = self.get_knight_pos()
-        self.squares[knight_pos[0]][knight_pos[1]] = self.turn
-        self.turn += 1
-        self.squares[moves[i][0]][moves[i][1]] = 'k'
+        self.move_to(moves[i])
 
     def move_to(self, coord):
         knight_pos = self.get_knight_pos()
@@ -77,6 +74,7 @@ class Game:
         self.screen_height = 660
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.font = pygame.font.SysFont('Arial', 48)
+        self.font_2 = pygame.font.SysFont('Arial', 32)
 
     def restart(self):
         self.board = Board(get_next_id())
@@ -165,6 +163,7 @@ class Game:
                     save_board(self.board)
                     self.restart()
 
+                # gul knapp
                 elif 420 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
                     self.draw_highscores()
 
@@ -185,7 +184,6 @@ class Game:
 
         total_turns = sum(map(lambda x: x.turn, board_list))
         count = max(len(board_list), 1)  # kan inte vara 0
-        print('Average', round(total_turns / count, 1), 'turns per game over', count, 'games.')
 
         showing_hs = True
         while showing_hs:
@@ -197,6 +195,18 @@ class Game:
                 pygame.draw.rect(self.screen, (0, 0, 0), row)
                 pygame.draw.rect(self.screen, (222, 222, 222), row_inside)
                 top_five_rects.append((row_inside, board))
+                text = self.font.render('Game ID: ' + str(board.id) + ', Turns: ' + str(board.turn), True, [0, 0, 0])
+                text_rect = text.get_rect(center=row_inside.center)
+                self.screen.blit(text, text_rect)
+
+            text_str = 'Average ' + str(round(total_turns / count, 1)) + ' turns per game over '+str(count)+' games.'
+            text = self.font_2.render(text_str, True, [255, 255, 255])
+            text_rect = text.get_rect(center=(self.screen_width / 2, self.screen_height / 12 * 10))
+            self.screen.blit(text, text_rect)
+            text_str = 'Press any button to continue.'
+            text = self.font_2.render(text_str, True, [255, 255, 255])
+            text_rect = text.get_rect(center=(self.screen_width / 2, self.screen_height / 12 * 11))
+            self.screen.blit(text, text_rect)
 
             pygame.display.update()
 
@@ -254,5 +264,3 @@ def get_next_id():
 
 if __name__ == '__main__':
     main()
-
-
