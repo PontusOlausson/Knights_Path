@@ -81,8 +81,8 @@ class Game:
 
     def draw_board(self):
         inc = self.board.INC
-        self.screen.fill((0, 0, 0))
-        (white, grey, black, brown) = ((225, 225, 225), (100, 100, 100), (0, 0, 0), (205, 133, 63))
+        self.screen.fill((60, 60, 60))
+        (white, grey, black, brown) = ((225, 225, 225), (100, 100, 100), (0, 0, 0), (200, 200, 200))
         board_colors = [white, grey]
 
         # Draw outlining (?)
@@ -187,19 +187,20 @@ class Game:
 
         showing_hs = True
         while showing_hs:
-            self.screen.fill((0, 0, 0))
+            self.screen.fill((60, 60, 60))
             top_five_rects = []
             for i, board in enumerate(top_five):
-                row = Rect(0, i * 100, 540, 100)
-                row_inside = Rect(5, (i * 100) + 5, 530, 90)
-                pygame.draw.rect(self.screen, (0, 0, 0), row)
-                pygame.draw.rect(self.screen, (222, 222, 222), row_inside)
-                top_five_rects.append((row_inside, board))
-                text = self.font.render('Game ID: ' + str(board.id) + ', Turns: ' + str(board.turn), True, [0, 0, 0])
-                text_rect = text.get_rect(center=row_inside.center)
+                rect = Rect(0, i * 100, 540, 100)
+                inside_rect = Rect(5, (i * 100) + 5, 530, 90)
+                pygame.draw.rect(self.screen, (60, 60, 60), rect)
+                pygame.draw.rect(self.screen, (222, 222, 222), inside_rect)
+                top_five_rects.append((inside_rect, board))
+                text = self.font.render('Turns: ' + str(board.turn) + ', Game ID: ' + str(board.id), True, [0, 0, 0])
+                text_rect = text.get_rect(center=inside_rect.center)
                 self.screen.blit(text, text_rect)
 
-            text_str = 'Average ' + str(round(total_turns / count, 1)) + ' turns per game over '+str(count)+' games.'
+            text_str = 'Average ' + str(round(total_turns / count, 1)) + \
+                       ' turns per game over ' + str(count) + ' games.'
             text = self.font_2.render(text_str, True, [255, 255, 255])
             text_rect = text.get_rect(center=(self.screen_width / 2, self.screen_height / 12 * 10))
             self.screen.blit(text, text_rect)
