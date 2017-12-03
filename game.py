@@ -6,23 +6,44 @@ import random
 import pickle
 
 
+# Klass som innehåller en representation av brädet samt funktioner för att manipulera detta bräde.
 class Board:
-    width = 480
-    height = 600
-    INC = width / 8
+    board_width = 480
+    board_height = 600
+    square_width = board_width / 8
 
     def __init__(self, _id):
         pygame.init()
-        self.squares = []
+
+        # Representerar alla rutor på spelplanen. Rutorna representeras av en symbol: 0 för en ruta som springaren inte
+        # har passerat ännu, k för rutan som springaren befinner sig på, ett siffervärde (1, 2, 3 etc) för rutor
+        # som springaren har passerat, och -1 för rutor som ligger utanför spelplanen (spelplanen består av 8x8 plus
+        # två rader/kolunner som en slags 'buffer').
+        self.squares = self.create_board()
         self.turn = 1
+
+        # Brädets unika id, används för att förhindra att ett bräde sparas mer än en gång.
         self.id = _id
 
-        self.squares = self.create_board()
+        self.turn = 0
+
+        # Flagga för om brädet har en placerad springare. Används för att bestämma om spelarens nästa tryck ska placera
+        # en springare eller förflytta en befintlig springare.
+        self.has_placed_knight = False
+
+    # Placerar ut springaren på koordinater (x, y)
+    def place_kight(self, coord):
+        self.squares[coord[0]][coord[1]] = 'k'
+        self.has_placed_knight = True
+        self.turn += 1
+
+    # Placerar ut springaren på en godtycklig ruta
+    def place_knight_random(self):
         i = random.randint(2, 9)
         j = random.randint(2, 9)
-        self.squares[i][j] = 'k'  # placerar ut springaren på en godtycklig ruta
-        self.turn = 1
+        self.place_kight([i, j])
 
+    # Skapar och returnerar en representation av ett tomt bräde.
     @staticmethod
     def create_board():
         _board = []
@@ -36,30 +57,35 @@ class Board:
 
         return _board
 
+    # Förflyttar springaren till en godtycklig möjlig ruta
     def random_move(self):
         moves = self.get_legit_moves()
         i = random.randint(0, len(moves) - 1)
         self.move_to(moves[i])
 
+    # Förflyttar springaren till en angiven ruta
     def move_to(self, coord):
         knight_pos = self.get_knight_pos()
         self.squares[knight_pos[0]][knight_pos[1]] = self.turn
         self.turn += 1
         self.squares[coord[0]][coord[1]] = 'k'
 
-    # Returnerar koordinaterna springaren kan flytta sig till
+    # Returnerar en lista med koordinater som springaren kan flytta sig till
     def get_legit_moves(self):
         legit_moves = []
         possible_moves = [[1, 2], [-1, 2], [2, 1], [-2, 1], [2, -1], [-2, -1], [1, -2], [-1, -2]]
         knight_pos = self.get_knight_pos()
-        for move in possible_moves:
-            i = knight_pos[0] + move[0]
-            j = knight_pos[1] + move[1]
-            if self.squares[i][j] is 0:
-                legit_moves.append([i, j])
 
-        return legit_moves
+        if knight_pos:
+            for move in possible_moves:
+                i = knight_pos[0] + move[0]
+                j = knight_pos[1] + move[1]
+                if self.squares[i][j] is 0:
+                    legit_moves.append([i, j])
 
+            return legit_moves
+
+    # Returnerar koordinaterna som springaren befinner sig på
     def get_knight_pos(self):
         for row in range(12):
             for column in range(12):
@@ -67,43 +93,49 @@ class Board:
                     return row, column
 
 
+# En klass som innehåller variabler och funktioner som rör själva spelet.
 class Game:
     def __init__(self):
+        # Skapar ett nytt objekt som representerar brädet.
         self.board = Board(get_next_id())
+
+        # Variabler och konstanter som rör den grafiska visningen av spelet.
         self.screen_width = 540
         self.screen_height = 660
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.font = pygame.font.SysFont('Arial', 48)
         self.font_2 = pygame.font.SysFont('Arial', 32)
 
+    # Startar om spelet genom att helt enkelt skapa och tilldela ett nytt objekt för brädet
     def restart(self):
         self.board = Board(get_next_id())
 
-    def draw_board(self):
-        inc = self.board.INC
+    # Ritar ut
+    def draw_main_screen(self):
+        inc = self.board.square_width  # inc = increment, används för att bestämma bredden på en ruta
         self.screen.fill((60, 60, 60))
-        (white, grey, black, brown) = ((225, 225, 225), (100, 100, 100), (0, 0, 0), (200, 200, 200))
+        (white, grey, black, light_grey) = ((225, 225, 225), (100, 100, 100), (0, 0, 0), (200, 200, 200))
         board_colors = [white, grey]
 
-        # Draw outlining (?)
+        # Ritar rutorna runt om själva spelplanen
         letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
         for i in range(8):
-            # letters
+            # Ritar rutorna med bokstäver
             square = Rect((i + 1) * inc, 0, inc, inc)
             text = self.font.render(letters[i], True, black)
             text_rect = text.get_rect(center=square.center)
-            pygame.draw.rect(self.screen, brown, square)
+            pygame.draw.rect(self.screen, light_grey, square)
             self.screen.blit(text, text_rect)
 
-            # numbers
+            # Ritar rutorna med siffror
             square = Rect(0, (i + 1) * inc, inc, inc)
             text = self.font.render(str(i + 1), True, black)
             text_rect = text.get_rect(center=square.center)
-            pygame.draw.rect(self.screen, brown, square)
+            pygame.draw.rect(self.screen, light_grey, square)
             self.screen.blit(text, text_rect)
 
-        # Draw board squares
-        c_i = 0  # color index
+        # Ritar ut brädets rutor
+        c_i = 0  # color_index
         for row in range(12):
             for column in range(12):
                 if row not in [0, 1, 10, 11] and column not in [0, 1, 10, 11]:  # ritar inte de två yttersta raderna
@@ -114,10 +146,10 @@ class Game:
                         text = self.font.render(str(self.board.squares[row][column]), True, black)
                         text_rect = text.get_rect(center=square.center)
                         self.screen.blit(text, text_rect)
-                c_i = (c_i - 1) * -1  # byter mellan i=0 och i=1, vilket byter färgen på rutorna mellan vit och grå
+                c_i = (c_i - 1) * -1  # byter mellan i_c=0 och i_c=1, vilket byter färgen på rutorna mellan vit och grå
             c_i = (c_i - 1) * -1
 
-        # Draw buttons
+        # Ritar ut knapparna längs ned på skärmen
         # Arguments: (x-coord, y-coord, width, height)
         buttonrandom = Rect(inc * 1, inc * 10 - (inc / 2), inc, inc)
         pygame.draw.rect(self.screen, (255, 0, 0), buttonrandom)
@@ -128,7 +160,7 @@ class Game:
         buttonhs = Rect(inc * 7, inc * 10 - (inc / 2), inc, inc)
         pygame.draw.rect(self.screen, (255, 255, 0), buttonhs)
 
-        # Draw score
+        # Ritar ut poängen mellan knapparna
         hs_square = Rect(inc * 3.5, inc * 10 - (inc / 2), inc * 2, inc)
         pygame.draw.rect(self.screen, (225, 225, 225), hs_square)
         text = self.font.render(str(self.board.turn), True, black)
@@ -137,6 +169,7 @@ class Game:
 
         pygame.display.update()
 
+    # Känner av om spelaren trycker på skärmen och bestämmer vilken knapp spelaren tryckte på
     def update(self):
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -146,34 +179,40 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
-                # röd knapp
+                # röd knapp, förflyttar springaren godtyckligt
                 if 60 < mouse_pos[0] < 120 and 570 < mouse_pos[1] < 630:
                     if self.board.get_legit_moves():
                         self.board.random_move()
 
-                # grön knapp
+                # grön knapp, förflyttar springaren godtyckligt tills dess att springare inte längre kan förflytta sig.
                 elif 120 < mouse_pos[0] < 180 and 570 < mouse_pos[1] < 630:
                     while self.board.get_legit_moves():
                         self.board.random_move()
-                        self.draw_board()
+                        self.draw_main_screen()
                         time.sleep(0.05)
 
-                # blå knapp
+                # blå knapp, sparar och startar om spelet
                 elif 360 < mouse_pos[0] < 420 and 570 < mouse_pos[1] < 630:
                     save_board(self.board)
                     self.restart()
 
-                # gul knapp
+                # gul knapp, öppnar poängsidan
                 elif 420 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
                     self.draw_highscores()
 
+                # Om spelaren tryckte på en ruta på spelplanen
                 elif mouse_pos[1] < 540:
-                    # Brädet använder omvänt än mouse_pos
-                    coord = [int(mouse_pos[1] / self.board.INC) + 1, int(mouse_pos[0] / self.board.INC) + 1]
-                    if coord in self.board.get_legit_moves():
-                        self.board.move_to(coord)
+                    coord = [int(mouse_pos[1] / self.board.square_width) + 1,
+                             int(mouse_pos[0] / self.board.square_width) + 1]
+                    if not self.board.has_placed_knight:
+                        self.board.place_kight(coord)
+                    else:
+                        # Brädet använder omvänt än mouse_pos
+                        if coord in self.board.get_legit_moves():
+                            self.board.move_to(coord)
 
     def draw_highscores(self):
+        # Laddar alla sparade bräden och sorterar dessa med avseende på 'poäng'
         board_list = load_boards()
         board_list = sorted(board_list, key=lambda x: x.turn, reverse=True)
 
@@ -182,9 +221,11 @@ class Game:
         for i in range(count):
             top_five.append(board_list[i])
 
+        # Totala 'poäng' i alla sparade bräden
         total_turns = sum(map(lambda x: x.turn, board_list))
-        count = max(len(board_list), 1)  # kan inte vara 0
+        count = len(board_list)
 
+        # Ritar upp poängsidan tills dess att spelaren trycker på en knapp eller laddar ett sparat bräde.
         showing_hs = True
         while showing_hs:
             self.screen.fill((60, 60, 60))
@@ -199,7 +240,7 @@ class Game:
                 text_rect = text.get_rect(center=inside_rect.center)
                 self.screen.blit(text, text_rect)
 
-            text_str = 'Average ' + str(round(total_turns / count, 1)) + \
+            text_str = 'Average ' + str(round(total_turns / max(count, 1), 1)) + \
                        ' turns per game over ' + str(count) + ' games.'
             text = self.font_2.render(text_str, True, [255, 255, 255])
             text_rect = text.get_rect(center=(self.screen_width / 2, self.screen_height / 12 * 10))
@@ -221,6 +262,7 @@ class Game:
                             self.play_board(i[1])
                             showing_hs = False
 
+    #
     def play_board(self, board):
         self.board = board
 
@@ -229,15 +271,13 @@ def main():
     game = Game()
 
     while True:
-        game.draw_board()
+        game.draw_main_screen()
         game.update()
 
 
 def save_board(board):
     board_list = load_boards()
-    if any(b.id == board.id for b in board_list):
-        print('fanns redan ett bräde med id', board.id)
-    else:
+    if not any(b.id == board.id for b in board_list):
         with open('highscores.dat', 'wb') as f:
             board_list.append(board)
             pickle.dump(board_list, f)
