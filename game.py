@@ -4,6 +4,7 @@ import sys
 import time
 import random
 import pickle
+import os
 
 
 # Klass som innehåller en representation av brädet samt funktioner för att manipulera detta bräde.
@@ -101,7 +102,7 @@ class Game:
 
         # Variabler och konstanter som rör den grafiska visningen av spelet.
         self.screen_width = 540
-        self.screen_height = 660
+        self.screen_height = 730
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         self.font = pygame.font.SysFont('Arial', 48)
         self.font_2 = pygame.font.SysFont('Arial', 32)
@@ -151,14 +152,10 @@ class Game:
 
         # Ritar ut knapparna längs ned på skärmen
         # Arguments: (x-coord, y-coord, width, height)
-        buttonrandom = Rect(inc * 1, inc * 10 - (inc / 2), inc, inc)
-        pygame.draw.rect(self.screen, (255, 0, 0), buttonrandom)
-        buttonrandomall = Rect(inc * 2, inc * 10 - (inc / 2), inc, inc)
-        pygame.draw.rect(self.screen, (0, 255, 0), buttonrandomall)
-        buttonrestart = Rect(inc * 6, inc * 10 - (inc / 2), inc, inc)
-        pygame.draw.rect(self.screen, (0, 0, 255), buttonrestart)
-        buttonhs = Rect(inc * 7, inc * 10 - (inc / 2), inc, inc)
-        pygame.draw.rect(self.screen, (255, 255, 0), buttonhs)
+        self.draw_button(inc / 2, inc * 10 - (inc/2), inc, 'Next turn', (255, 0, 0), black)
+        self.draw_button(inc / 2, inc * 11 - (inc/2), inc, 'All turns', (0, 255, 0), black)
+        self.draw_button(inc * 6, inc * 10 - (inc/2), inc, 'Save/Restart', (0, 0, 255), black)
+        self.draw_button(inc * 6, inc * 11 - (inc/2), inc, 'Highscores', (255, 255, 0), black)
 
         # Ritar ut poängen mellan knapparna
         hs_square = Rect(inc * 3.5, inc * 10 - (inc / 2), inc * 2, inc)
@@ -168,6 +165,13 @@ class Game:
         self.screen.blit(text, text_rect)
 
         pygame.display.update()
+
+    def draw_button(self, x, y, inc, text, button_color, text_color):
+        button = Rect(x, y, inc * 2.5, inc)
+        pygame.draw.rect(self.screen, button_color, button)
+        text = self.font_2.render(text, True, text_color)
+        text_rect = text.get_rect(center=button.center)
+        self.screen.blit(text, text_rect)
 
     # Känner av om spelaren trycker på skärmen och bestämmer vilken knapp spelaren tryckte på
     def update(self):
@@ -180,24 +184,24 @@ class Game:
                 mouse_pos = pygame.mouse.get_pos()
 
                 # röd knapp, förflyttar springaren godtyckligt
-                if 60 < mouse_pos[0] < 120 and 570 < mouse_pos[1] < 630:
+                if 30 < mouse_pos[0] < 180 and 570 < mouse_pos[1] < 630:
                     if self.board.get_legit_moves():
                         self.board.random_move()
 
                 # grön knapp, förflyttar springaren godtyckligt tills dess att springare inte längre kan förflytta sig.
-                elif 120 < mouse_pos[0] < 180 and 570 < mouse_pos[1] < 630:
+                elif 30 < mouse_pos[0] < 180 and 630 < mouse_pos[1] < 690:
                     while self.board.get_legit_moves():
                         self.board.random_move()
                         self.draw_main_screen()
                         time.sleep(0.05)
 
                 # blå knapp, sparar och startar om spelet
-                elif 360 < mouse_pos[0] < 420 and 570 < mouse_pos[1] < 630:
+                elif 360 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
                     save_board(self.board)
                     self.restart()
 
                 # gul knapp, öppnar poängsidan
-                elif 420 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
+                elif 360 < mouse_pos[0] < 480 and 630 < mouse_pos[1] < 690:
                     self.draw_highscores()
 
                 # Om spelaren tryckte på en ruta på spelplanen
@@ -262,31 +266,29 @@ class Game:
                             self.play_board(i[1])
                             showing_hs = False
 
-    #
+    # Ersätter det befintliga brädet med ett angivet bräde, används när man laddar ett sparat bräde.
     def play_board(self, board):
         self.board = board
 
 
-def main():
-    game = Game()
-
-    while True:
-        game.draw_main_screen()
-        game.update()
-
-
 def save_board(board):
+    path = os.path.dirname(__file__) + '/highscores.dat'
     board_list = load_boards()
     if not any(b.id == board.id for b in board_list):
-        with open('highscores.dat', 'wb') as f:
+        with open(path, 'wb') as f:
             board_list.append(board)
             pickle.dump(board_list, f)
 
 
 def load_boards():
+    path = os.path.dirname(__file__) + '/highscores.dat'
     try:
-        with open('highscores.dat', 'rb') as f:
+        with open(path, 'rb+') as f:
             board_list = pickle.load(f)
+    except IOError as e:
+        print(e)
+        open(path, 'wb').close()
+        board_list = []
     except EOFError as e:
         print(e)
         board_list = []
@@ -301,6 +303,14 @@ def get_next_id():
         print(e)
         next_id = 0
     return next_id
+
+
+def main():
+    game = Game()
+
+    while True:
+        game.draw_main_screen()
+        game.update()
 
 
 if __name__ == '__main__':
