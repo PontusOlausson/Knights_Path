@@ -107,6 +107,14 @@ class Game:
         self.font = pygame.font.SysFont('Arial', 48)
         self.font_2 = pygame.font.SysFont('Arial', 32)
 
+        light_grey, black = (225, 225, 225), (0, 0, 0)
+        inc = self.board.square_width
+        self.buttons = []
+        self.add_button(inc / 2, inc * 10 - (inc / 2), inc, 'Next turn', black)
+        self.add_button(inc / 2, inc * 11 - (inc / 2), inc, 'All turns', black)
+        self.add_button(inc * 6, inc * 10 - (inc / 2), inc, 'Save/Restart', black)
+        self.add_button(inc * 6, inc * 11 - (inc / 2), inc, 'Highscores', black)
+
     # Startar om spelet genom att helt enkelt skapa och tilldela ett nytt objekt för brädet
     def restart(self):
         self.board = Board(get_next_id())
@@ -152,10 +160,9 @@ class Game:
 
         # Ritar ut knapparna längs ned på skärmen
         # Arguments: (x-coord, y-coord, width, height)
-        self.draw_button(inc / 2, inc * 10 - (inc/2), inc, 'Next turn', (255, 0, 0), black)
-        self.draw_button(inc / 2, inc * 11 - (inc/2), inc, 'All turns', (0, 255, 0), black)
-        self.draw_button(inc * 6, inc * 10 - (inc/2), inc, 'Save/Restart', (0, 0, 255), black)
-        self.draw_button(inc * 6, inc * 11 - (inc/2), inc, 'Highscores', (255, 255, 0), black)
+        for button in self.buttons:
+            pygame.draw.rect(self.screen, (225, 225, 225), button[0])
+            self.screen.blit(button[1], button[2])
 
         # Ritar ut poängen mellan knapparna
         hs_square = Rect(inc * 3.5, inc * 10 - (inc / 2), inc * 2, inc)
@@ -166,12 +173,11 @@ class Game:
 
         pygame.display.update()
 
-    def draw_button(self, x, y, inc, text, button_color, text_color):
-        button = Rect(x, y, inc * 2.5, inc)
-        pygame.draw.rect(self.screen, button_color, button)
+    def add_button(self, x, y, inc, text, text_color):
+        button = Rect(x + 3, y + 3, inc * 2.5 - 6, inc - 6)
         text = self.font_2.render(text, True, text_color)
         text_rect = text.get_rect(center=button.center)
-        self.screen.blit(text, text_rect)
+        self.buttons.append([button, text, text_rect])
 
     # Känner av om spelaren trycker på skärmen och bestämmer vilken knapp spelaren tryckte på
     def update(self):
@@ -183,25 +189,25 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
-                # röd knapp, förflyttar springaren godtyckligt
-                if 30 < mouse_pos[0] < 180 and 570 < mouse_pos[1] < 630:
+                # Next turn: förflyttar springaren godtyckligt
+                if self.buttons[0][0].collidepoint(mouse_pos):
                     if self.board.get_legit_moves():
                         self.board.random_move()
 
-                # grön knapp, förflyttar springaren godtyckligt tills dess att springare inte längre kan förflytta sig.
-                elif 30 < mouse_pos[0] < 180 and 630 < mouse_pos[1] < 690:
+                # All turns: förflyttar springaren godtyckligt tills dess att springare inte längre kan förflytta sig.
+                elif self.buttons[1][0].collidepoint(mouse_pos):
                     while self.board.get_legit_moves():
                         self.board.random_move()
                         self.draw_main_screen()
                         time.sleep(0.05)
 
-                # blå knapp, sparar och startar om spelet
-                elif 360 < mouse_pos[0] < 480 and 570 < mouse_pos[1] < 630:
+                # Save/Restart: sparar och startar om spelet
+                elif self.buttons[2][0].collidepoint(mouse_pos):
                     save_board(self.board)
                     self.restart()
 
-                # gul knapp, öppnar poängsidan
-                elif 360 < mouse_pos[0] < 480 and 630 < mouse_pos[1] < 690:
+                # Highscores: öppnar poängsidan
+                elif self.buttons[3][0].collidepoint(mouse_pos):
                     self.draw_highscores()
 
                 # Om spelaren tryckte på en ruta på spelplanen
