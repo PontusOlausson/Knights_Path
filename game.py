@@ -107,17 +107,30 @@ class Game:
         self.font = pygame.font.SysFont('Arial', 48)
         self.font_2 = pygame.font.SysFont('Arial', 32)
 
-        light_grey, black = (225, 225, 225), (0, 0, 0)
         inc = self.board.square_width
         self.buttons = []
-        self.add_button(inc / 2, inc * 10 - (inc / 2), inc, 'Next turn', black)
-        self.add_button(inc / 2, inc * 11 - (inc / 2), inc, 'All turns', black)
-        self.add_button(inc * 6, inc * 10 - (inc / 2), inc, 'Save/Restart', black)
-        self.add_button(inc * 6, inc * 11 - (inc / 2), inc, 'Highscores', black)
+        self.add_button(inc / 2, inc * 10 - (inc / 2), inc, 'Next turn', self.random_move)
+        self.add_button(inc / 2, inc * 11 - (inc / 2), inc, 'All turns', self.random_move_all)
+        self.add_button(inc * 6, inc * 10 - (inc / 2), inc, 'Save/Restart', self.save_restart)
+        self.add_button(inc * 6, inc * 11 - (inc / 2), inc, 'Highscores', self.draw_highscores)
 
     # Startar om spelet genom att helt enkelt skapa och tilldela ett nytt objekt för brädet
     def restart(self):
         self.board = Board(get_next_id())
+
+    def save_restart(self):
+        save_board(self.board)
+        self.restart()
+
+    def random_move(self):
+        if self.board.get_legit_moves():
+            self.board.random_move()
+
+    def random_move_all(self):
+        while self.board.get_legit_moves():
+            self.board.random_move()
+            self.draw_main_screen()
+            time.sleep(0.05)
 
     # Ritar ut
     def draw_main_screen(self):
@@ -173,11 +186,11 @@ class Game:
 
         pygame.display.update()
 
-    def add_button(self, x, y, inc, text, text_color):
+    def add_button(self, x, y, inc, text, func):
         button = Rect(x + 3, y + 3, inc * 2.5 - 6, inc - 6)
-        text = self.font_2.render(text, True, text_color)
+        text = self.font_2.render(text, True, (0, 0, 0))
         text_rect = text.get_rect(center=button.center)
-        self.buttons.append([button, text, text_rect])
+        self.buttons.append([button, text, text_rect, func])
 
     # Känner av om spelaren trycker på skärmen och bestämmer vilken knapp spelaren tryckte på
     def update(self):
@@ -189,29 +202,13 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
-                # Next turn: förflyttar springaren godtyckligt
-                if self.buttons[0][0].collidepoint(mouse_pos):
-                    if self.board.get_legit_moves():
-                        self.board.random_move()
-
-                # All turns: förflyttar springaren godtyckligt tills dess att springare inte längre kan förflytta sig.
-                elif self.buttons[1][0].collidepoint(mouse_pos):
-                    while self.board.get_legit_moves():
-                        self.board.random_move()
-                        self.draw_main_screen()
-                        time.sleep(0.05)
-
-                # Save/Restart: sparar och startar om spelet
-                elif self.buttons[2][0].collidepoint(mouse_pos):
-                    save_board(self.board)
-                    self.restart()
-
-                # Highscores: öppnar poängsidan
-                elif self.buttons[3][0].collidepoint(mouse_pos):
-                    self.draw_highscores()
+                # kollar om musen är över en av knapparna, och kör i så fall knappens funktion
+                for button in self.buttons:
+                    if button[0].collidepoint(mouse_pos):
+                        button[3]()
 
                 # Om spelaren tryckte på en ruta på spelplanen
-                elif mouse_pos[1] < 540:
+                if mouse_pos[1] < 540:
                     coord = [int(mouse_pos[1] / self.board.square_width) + 1,
                              int(mouse_pos[0] / self.board.square_width) + 1]
                     if not self.board.has_placed_knight:
